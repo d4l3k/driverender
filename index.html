@@ -1,0 +1,82 @@
+<head>
+<title>Tesla Data Renderer</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.css" integrity="sha512-42kB9yDlYiCEfx2xVwq0q7hT4uf26FUgSIZBK8uiaEnTdShXjwr8Ip1V4xGJMg3mHkUt9nNuTDxunHF0/EgxLQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<style>
+body {
+        padding: 0;
+        margin: 0;
+        position: relative;
+        font-family: sans-serif;
+        font-size: 12pt;
+}
+#files {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: white;
+  z-index: 100;
+  background-color: rgba(0,0,0,0.8);
+  padding-right: 20px;
+}
+a, h1 {
+color: #039be5;
+text-decoration: none;
+}
+a:hover {
+color: #0384C3;
+}
+
+#controls {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  color: white;
+  z-index: 100;
+  display: flex;
+  padding: 10px 5px;
+  background-color: rgba(0,0,0,0.8);
+  align-items: center;
+}
+#controls > * {
+  white-space: nowrap;
+  margin: 0 5px;
+}
+input {
+  width: 100%;
+  flex-grow: 1000;
+}
+button {
+  min-width: 32px;
+}
+</style>
+</head>
+<body>
+
+<section id="files">
+        <ul>
+                <li><a href="?person_dog.xyz">Person with Dog</a></li>
+                <li><a href="?cars.xyz">Cars</a></li>
+                <li><a href="?car_close.xyz">Car Close</a></li>
+                <li><a href="?freeway_ramp.xyz">Freeway Ramp</a></li>
+                <li><a href="?parking_trees_close.xyz">Parking Trees Close</a></li>
+                <li><a href="?parking_trees_far.xyz">Parking Trees Far</a></li>
+                <li><a href="?parking.xyz">Parking</a></li>
+                <li><a href="?street_with_car.xyz">Street With Car</a></li>
+                <li><a href="?pillars.xyz">Seattle Monorail Pillars</a></li>
+        </ul>
+</section>
+
+<section id="controls">
+  <button id="prev">&#x23EE;</button>
+  <button id="next">&#x23ED;</button>
+  <span id="position"></span>/
+  <span id="size"></span>
+  <input type="range" min="0" max="10000" value="0" class="slider" id="position-slider">
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.js" integrity="sha512-bUg5gaqBVaXIJNuebamJ6uex//mjxPk8kljQTdM1SwkNrQD7pjS+PerntUSD+QRWPNJ0tq54/x4zRV8bLrLhZg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="OrbitControls.js"></script>
+<script src="index.js"></script>
+</body>
