@@ -267,8 +267,7 @@ function getColor (p) {
   if (i >= colorScale.length) {
     i = colorScale.length - 1
   }
-  const rgb = colorScale[i]
-  return new THREE.Color(rgb[0], rgb[1], rgb[2])
+  return colorScale[i];
 }
 
 class HideBoxGeometry extends THREE.BufferGeometry {
@@ -504,12 +503,6 @@ function resetScene () {
   }
 }
 
-const materials = []
-
-for (let i = 0; i < 256; i++) {
-  materials.push(new THREE.MeshPhongMaterial({color: getColor(i / 256)}))
-}
-
 const height = 12
 const width = 255
 const depth = 384
@@ -526,35 +519,10 @@ function renderBev3D (data) {
     }
     return data[i] / 256
   }
-  const dirs = [
-    [1, 0, 0],
-    [-1, 0, 0],
-    [0, 0, 1],
-    [0, 0, -1],
-    [0, 1, 0],
-    [0, -1, 0]
-  ]
-  const visibleFaces = (x, y, z) => {
-    const visible = []
-    dirs.forEach(([x2, y2, z2], i) => {
-      if (getV(x + x2, y + y2, z + z2) < prob) {
-        visible.push(i)
-      }
-    })
-    return visible
-  }
-  const geometries = {}
-  function getGeometry (visible) {
-    const key = visible.join('')
-    if (key in geometries) {
-      return geometries[key]
-    }
-    const geo = new HideBoxGeometry(visible)
-    geometries[key] = geo
-    return geo
-  }
-  let pruned = 0
-  let count = 0
+  const color = new THREE.Color();
+  const colors = [];
+  const matrix = new THREE.Matrix4();
+  const matrices = [];
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < depth; y++) {
       for (let z = 0; z < height; z++) {
@@ -562,26 +530,20 @@ function renderBev3D (data) {
         if (v < prob) {
           continue
         }
-
-        const visible = visibleFaces(x, y, z)
-        if (visible.length === 0) {
-          pruned += 1
-          continue
-        }
-        const geometry = getGeometry(visible)
-        count += 1
-        const material = materials[Math.floor(v * 256)]
-        const cube = new THREE.Mesh(geometry, material)
-        cube.position.x = x
-        cube.position.z = y
-        cube.position.y = z
-        scene.add(cube)
-        objects.push(cube)
+        color.fromArray(getColor(v));
+        color.toArray(colors, colors.length);
+        matrix.setPosition(x, z, y);
+        matrix.toArray(matrices, matrices.length);
       }
     }
   }
-  console.log('pruned', pruned)
-  console.log('count', count)
+  const geometry = new THREE.BoxGeometry();
+  const material = new THREE.MeshPhongMaterial();
+  const voxels = new THREE.InstancedMesh(geometry,material,matrices.length / 16);
+  voxels.instanceMatrix = new THREE.InstancedBufferAttribute(new Float32Array(matrices), 16);
+  voxels.instanceColor = new THREE.InstancedBufferAttribute( new Float32Array(colors), 3 );
+  scene.add(voxels);
+  objects.push(voxels);
 }
 
 function bev3DInit () {
