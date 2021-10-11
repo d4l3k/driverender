@@ -538,7 +538,7 @@ function renderBev3D (data) {
     }
   }
   const geometry = new THREE.BoxGeometry();
-  const material = new THREE.MeshBasicMaterial();
+  const material = new THREE.MeshPhongMaterial();
   const voxels = new THREE.InstancedMesh(geometry,material,matrices.length / 16);
   voxels.instanceMatrix = new THREE.InstancedBufferAttribute(new Float32Array(matrices), 16);
   voxels.instanceColor = new THREE.InstancedBufferAttribute( new Float32Array(colors), 3 );
