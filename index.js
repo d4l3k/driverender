@@ -478,7 +478,6 @@ function renderXYZ (data) {
     }
   }
   const geometry = new THREE.BufferGeometry()
-  console.log(vertices)
 
   // itemSize = 3 because there are 3 values (components) per vertex
   geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3))
@@ -647,25 +646,35 @@ if (file.endsWith('.xyz')) {
     }
     setControlsSize(files.length)
 
+    let play = false
+    let curI = 0
+
     function seek (i) {
       if (i < 0) {
         i = 0
       } else if (i >= files.length) {
         i = files.length - 1
       }
+      curI = i
 
       const [f, time] = files[i]
       setControlsPosition(i, time)
 
-      if (controller) {
+      if (controller && !play) {
         controller.abort()
       }
 
       NProgress.start()
       controller = new AbortController()
       var signal = controller.signal
-      fetch(resolve(file, f), {signal}).then(f => f.arrayBuffer()).then(data => {
-        console.log(data)
+      fetch(resolve(file, f), {signal}).then(f => {
+        if (play) {
+          if (curI == i) {
+            seek(i + 1)
+          }
+        }
+        return f.arrayBuffer()
+      }).then(data => {
         renderBev3D(data)
       }).finally(() => {
         NProgress.done()
@@ -686,6 +695,12 @@ if (file.endsWith('.xyz')) {
     })
     document.querySelector('#prev').addEventListener('click', function () {
       seek(parseInt(positionSlider.value) - 1)
+    })
+    document.querySelector('#play').addEventListener('click', function () {
+      play = !play
+      if (play) {
+        seek(curI)
+      }
     })
   })
   bev3DInit()
