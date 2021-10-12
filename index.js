@@ -615,6 +615,10 @@ function setControlsSize (size) {
   positionSlider.max = size - 1
 }
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 if (file.endsWith('.xyz')) {
   fetch(file).then(f => f.text()).then(data => {
     renderXYZ(data)
@@ -629,6 +633,7 @@ if (file.endsWith('.xyz')) {
 
   fetch(file).then(f => f.text()).then(data => {
     let time = 0
+    let dur = 0
     const files = []
     const lines = data.trim().split('\n')
     for (const line of lines) {
@@ -636,10 +641,11 @@ if (file.endsWith('.xyz')) {
       const cmd = line.substr(0, space)
       const arg = line.substr(space + 1)
       if (cmd === 'duration') {
-        time += parseFloat(arg)
+        dur = parseFloat(arg)
+        time += dur
       } else if (cmd === 'file') {
         const f = arg.substr(1, arg.length - 2)
-        files.push([f, time])
+        files.push([f, time, dur])
       } else {
         throw new Error('unrecognized cmd: ' + cmd)
       }
@@ -649,7 +655,7 @@ if (file.endsWith('.xyz')) {
     let play = false
     let curI = 0
 
-    function seek (i) {
+    function seek (i, playAt) {
       if (i < 0) {
         i = 0
       } else if (i >= files.length) {
@@ -657,8 +663,13 @@ if (file.endsWith('.xyz')) {
       }
       curI = i
 
-      const [f, time] = files[i]
+      const [f, time, dur] = files[i]
       setControlsPosition(i, time)
+
+      if (!playAt) {
+        playAt = new Date().getTime()
+      }
+      playAt += dur * 1000
 
       if (controller && !play) {
         controller.abort()
@@ -668,12 +679,23 @@ if (file.endsWith('.xyz')) {
       controller = new AbortController()
       var signal = controller.signal
       fetch(resolve(file, f), {signal}).then(f => {
-        if (play) {
-          if (curI == i) {
-            seek(i + 1)
+        const load = () => {
+          if (play) {
+            if (curI == i) {
+              seek(i + 1, playAt)
+            }
           }
+          return f.arrayBuffer()
         }
-        return f.arrayBuffer()
+
+        const now = new Date().getTime()
+        const sleepFor = playAt-now
+        if (sleepFor < 0) {
+          return load()
+        } else {
+          console.log("sleeping for", sleepFor)
+          return sleep(sleepFor).then(() => load())
+        }
       }).then(data => {
         renderBev3D(data)
       }).finally(() => {
