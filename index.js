@@ -546,9 +546,9 @@ function renderBev3D (data) {
 }
 
 function bev3DInit () {
-  const carpos = 0.83
+  const carpos = 0.845
   controls.object.position.set(width / 2, 20, depth)
-  controls.target = new THREE.Vector3(width / 2, height / 2, depth * carpos)
+  controls.target = new THREE.Vector3(width / 2, height / 3, depth * carpos)
   controls.update()
   // const hemi = new THREE.HemisphereLight( 0xffffff, 0x080808, 0.5 );
   // scene.add( hemi );
