@@ -511,7 +511,7 @@ const height = 12
 const width = 256
 const depth = 256
 
-function renderBev3D (data) {
+function renderBev3D (data, colordata) {
   resetScene()
 
   data = new Uint8Array(data)
@@ -522,6 +522,10 @@ function renderBev3D (data) {
       return 0
     }
     return data[i] / 256
+  }
+  const getGridColor = (x, y, z, c) => {
+    const i = z + (depth-x) * height + (width-y) * height * depth + (depth * height*width*c)
+    return colordata[i] / 256
   }
   const color = new THREE.Color();
   const colors = [];
@@ -534,7 +538,15 @@ function renderBev3D (data) {
         if (v < prob) {
           continue
         }
-        color.fromArray(getColor(v));
+        if (colordata) {
+          color.fromArray([
+            getGridColor(x,y,z, 0),
+            getGridColor(x,y,z, 1),
+            getGridColor(x,y,z, 2),
+          ]);
+        } else {
+          color.fromArray(getColor(v));
+        }
         color.toArray(colors, colors.length);
         matrix.setPosition(x, z, y);
         matrix.toArray(matrices, matrices.length);
@@ -624,17 +636,20 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-if (file.endsWith('.xyz')) {
-  fetch(file).then(f => f.text()).then(data => {
-    renderXYZ(data)
-  })
-} else if (file.endsWith('.bev3d')) {
-  fetch(file).then(f => f.arrayBuffer()).then(data => {
-    renderBev3D(data)
-  })
-  bev3DInit()
-} else if (file.endsWith('.npy')) {
-  loadnpy(file).then(data => {
+async function main() {
+  if (file.endsWith('.xyz')) {
+    fetch(file).then(f => f.text()).then(data => {
+      renderXYZ(data)
+    })
+  } else if (file.endsWith('.bev3d')) {
+    fetch(file).then(f => f.arrayBuffer()).then(data => {
+      renderBev3D(data)
+    })
+    bev3DInit()
+  } else if (file.includes("color_grid")) {
+    bev3DInit()
+
+    const data = await loadnpy(file.replace("color_grid", "grid"))
     console.log(data)
 
     const uint = new Uint8Array(data.data.length)
@@ -642,107 +657,127 @@ if (file.endsWith('.xyz')) {
       uint[i] = data.data[i]*256
     }
 
-    renderBev3D(uint)
-  }).catch((e) => {
-    console.error(e)
-  })
-  bev3DInit()
-} else if (file.endsWith('.txt')) {
-  let controller = null
-
-  fetch(file).then(f => f.text()).then(data => {
-    let time = 0
-    let dur = 0
-    const files = []
-    const lines = data.trim().split('\n')
-    for (const line of lines) {
-      const space = line.indexOf(' ')
-      const cmd = line.substr(0, space)
-      const arg = line.substr(space + 1)
-      if (cmd === 'duration') {
-        dur = parseFloat(arg)
-        time += dur
-      } else if (cmd === 'file') {
-        const f = arg.substr(1, arg.length - 2)
-        files.push([f, time, dur])
-      } else {
-        throw new Error('unrecognized cmd: ' + cmd)
-      }
+    const colordata = await loadnpy(file)
+    console.log(colordata)
+    const coloruint = new Uint8Array(colordata.data.length)
+    for (let i = 0; i<colordata.data.length; i++) {
+      coloruint[i] = colordata.data[i]*256
     }
-    setControlsSize(files.length)
 
-    let play = false
-    let curI = 0
+    renderBev3D(uint, coloruint)
+  } else if (file.endsWith('.npy')) {
+    loadnpy(file).then(data => {
+      console.log(data)
 
-    function seek (i, playAt) {
-      if (i < 0) {
-        i = 0
-      } else if (i >= files.length) {
-        i = files.length - 1
-      }
-      curI = i
-
-      const [f, time, dur] = files[i]
-      setControlsPosition(i, time)
-
-      if (!playAt) {
-        playAt = new Date().getTime()
-      }
-      playAt += dur * 1000
-
-      if (controller && !play) {
-        controller.abort()
+      const uint = new Uint8Array(data.data.length)
+      for (let i = 0; i<data.data.length; i++) {
+        uint[i] = data.data[i]*256
       }
 
-      NProgress.start()
-      controller = new AbortController()
-      var signal = controller.signal
-      fetch(resolve(file, f), {signal}).then(f => {
-        const load = () => {
-          if (play) {
-            if (curI == i) {
-              seek(i + 1, playAt)
-            }
-          }
-          return f.arrayBuffer()
-        }
+      renderBev3D(uint)
+    }).catch((e) => {
+      console.error(e)
+    })
+    bev3DInit()
+  } else if (file.endsWith('.txt')) {
+    let controller = null
 
-        const now = new Date().getTime()
-        const sleepFor = playAt-now
-        if (sleepFor < 0) {
-          return load()
+    fetch(file).then(f => f.text()).then(data => {
+      let time = 0
+      let dur = 0
+      const files = []
+      const lines = data.trim().split('\n')
+      for (const line of lines) {
+        const space = line.indexOf(' ')
+        const cmd = line.substr(0, space)
+        const arg = line.substr(space + 1)
+        if (cmd === 'duration') {
+          dur = parseFloat(arg)
+          time += dur
+        } else if (cmd === 'file') {
+          const f = arg.substr(1, arg.length - 2)
+          files.push([f, time, dur])
         } else {
-          console.log("sleeping for", sleepFor)
-          return sleep(sleepFor).then(() => load())
+          throw new Error('unrecognized cmd: ' + cmd)
         }
-      }).then(data => {
-        renderBev3D(data)
-      }).finally(() => {
-        NProgress.done()
-      })
-    }
-
-    seek(startI)
-
-    positionSlider.addEventListener('mouseup', function () {
-      seek(parseInt(this.value))
-    })
-    positionSlider.addEventListener('touchend', function () {
-      seek(parseInt(this.value))
-    })
-
-    document.querySelector('#next').addEventListener('click', function () {
-      seek(parseInt(positionSlider.value) + 1)
-    })
-    document.querySelector('#prev').addEventListener('click', function () {
-      seek(parseInt(positionSlider.value) - 1)
-    })
-    document.querySelector('#play').addEventListener('click', function () {
-      play = !play
-      if (play) {
-        seek(curI)
       }
+      setControlsSize(files.length)
+
+      let play = false
+      let curI = 0
+
+      function seek (i, playAt) {
+        if (i < 0) {
+          i = 0
+        } else if (i >= files.length) {
+          i = files.length - 1
+        }
+        curI = i
+
+        const [f, time, dur] = files[i]
+        setControlsPosition(i, time)
+
+        if (!playAt) {
+          playAt = new Date().getTime()
+        }
+        playAt += dur * 1000
+
+        if (controller && !play) {
+          controller.abort()
+        }
+
+        NProgress.start()
+        controller = new AbortController()
+        var signal = controller.signal
+        fetch(resolve(file, f), {signal}).then(f => {
+          const load = () => {
+            if (play) {
+              if (curI == i) {
+                seek(i + 1, playAt)
+              }
+            }
+            return f.arrayBuffer()
+          }
+
+          const now = new Date().getTime()
+          const sleepFor = playAt-now
+          if (sleepFor < 0) {
+            return load()
+          } else {
+            console.log("sleeping for", sleepFor)
+            return sleep(sleepFor).then(() => load())
+          }
+        }).then(data => {
+          renderBev3D(data)
+        }).finally(() => {
+          NProgress.done()
+        })
+      }
+
+      seek(startI)
+
+      positionSlider.addEventListener('mouseup', function () {
+        seek(parseInt(this.value))
+      })
+      positionSlider.addEventListener('touchend', function () {
+        seek(parseInt(this.value))
+      })
+
+      document.querySelector('#next').addEventListener('click', function () {
+        seek(parseInt(positionSlider.value) + 1)
+      })
+      document.querySelector('#prev').addEventListener('click', function () {
+        seek(parseInt(positionSlider.value) - 1)
+      })
+      document.querySelector('#play').addEventListener('click', function () {
+        play = !play
+        if (play) {
+          seek(curI)
+        }
+      })
     })
-  })
-  bev3DInit()
+    bev3DInit()
+  }
 }
+
+main()
