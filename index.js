@@ -569,10 +569,11 @@ function bev3DInit () {
   controls.update()
   // const hemi = new THREE.HemisphereLight( 0xffffff, 0x080808, 0.5 );
   // scene.add( hemi );
-  const light = new THREE.PointLight(0xffffff, 1, 2000)
-  light.position.set(width / 4, 200, depth * 9 / 8)
-  scene.add(light)
-  const ambient = new THREE.AmbientLight(0x404040) // soft white light
+  //const light = new THREE.PointLight(0xffffff, 1, 2000)
+  //light.position.set(width / 4, 200, depth * 9 / 8)
+  //scene.add(light)
+  //const ambient = new THREE.AmbientLight(0x404040) // soft white light
+  const ambient = new THREE.AmbientLight(0xffffff) // soft white light
   scene.add(ambient)
 
   const geometry = new THREE.PlaneGeometry(width, depth)
