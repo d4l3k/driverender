@@ -657,13 +657,22 @@ function renderDet (data) {
     const ambient = new THREE.AmbientLight(0x404040) // soft white light
     scene.add(ambient)
 
-    const geometry = new THREE.PlaneGeometry(200/2, 300/2)
-    const material = new THREE.MeshPhongMaterial({color: 0xffffff})
-    const plane = new THREE.Mesh(geometry, material)
-    //plane.position.y = -1.45/2
-    plane.rotateX(-Math.PI / 2)
-    window.plane = plane
-    scene.add(plane)
+    const l = 300
+    const w = 200
+    const h = 15
+
+    //const geometry = new THREE.PlaneGeometry(200/2, 300/2)
+    //const material = new THREE.MeshPhongMaterial({color: 0xffffff})
+    //const plane = new THREE.Mesh(geometry, material)
+    ////plane.position.y = -1.45/2
+    //plane.rotateX(-Math.PI / 2)
+    //window.plane = plane
+    //scene.add(plane)
+
+    const gridHelper1 = new THREE.GridHelper(w/5, w/5, 0x888888, 0x444444)
+    scene.add(gridHelper1)
+    const gridHelper10 = new THREE.GridHelper(w, w/10, 0x888888, 0x444444)
+    scene.add(gridHelper10)
 
     const cargeometry = new THREE.BoxGeometry(2.09, 1.45, 4.7)
     const carmaterial = new THREE.MeshPhongMaterial({color: 0x00ff00})
