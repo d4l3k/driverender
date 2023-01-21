@@ -576,6 +576,103 @@ function bev3DInit () {
   scene.add(car)
 }
 
+function argmax(arr) {
+  let max = arr[0]
+  let maxi = 0
+  for (let i = 0; i < arr.length; i++) {
+    const v = arr[i]
+    if (v > max) {
+      max = v
+      maxi = i
+    }
+  }
+  return maxi
+}
+
+function renderDet (data) {
+  console.log(data)
+
+  const {classes, xyz, vel, sizes} = data
+  const n = classes.length
+
+  const classNames = [
+    "pedestrian",
+    "rider",
+    "car",
+    "truck",
+    "bus",
+    "train",
+    "motorcycle",
+    "bicycle",
+    "traffic light",
+    "traffic sign",
+  ]
+
+  const colorList = [
+    '#ff7f50','#87cefa','#da70d6','#32cd32','#6495ed',
+    '#ff69b4','#ba55d3','#cd5c5c','#ffa500','#40e0d0'
+  ]
+
+  const elem = document.querySelector("#legend")
+  for (let i = 0; i < classNames.length; i++) {
+    elem.innerHTML += `<div style="background-color: ${colorList[i]}">
+      ${classNames[i]}
+    </div>`
+  }
+
+  const geometry = new THREE.BoxGeometry(1,1,1)
+  const materials = [
+  ]
+  for (const color of colorList) {
+    materials.push(new THREE.MeshPhongMaterial({color: color}))
+  }
+  for (let i = 0; i < n; i++) {
+    const kls = argmax(classes[i])
+    if (kls == 10) {
+      continue
+    }
+    const prob = classes[i][kls]
+    console.log(kls, prob, sizes[i])
+    const cube = new THREE.Mesh( geometry, materials[kls])
+    const [x, y, z] = xyz[i]
+    cube.position.set(-y, z, -x)
+    const [dx, dy, dz] = sizes[i]
+    cube.scale.set(dy, dz, dx)
+
+    //cube.position.x = x
+    //cube.position.y = y
+    //cube.position.z = z
+    scene.add( cube );
+  }
+
+  //camera.lookAt(points.position)
+
+  {
+    //camera.up.set(0,0,1);
+    //controls.update();
+
+    const light = new THREE.PointLight(0xffffff, 1, 2000)
+    light.position.set(150, 250, 250)
+    scene.add(light)
+    const ambient = new THREE.AmbientLight(0x404040) // soft white light
+    scene.add(ambient)
+
+    const geometry = new THREE.PlaneGeometry(200/2, 300/2)
+    const material = new THREE.MeshPhongMaterial({color: 0xffffff})
+    const plane = new THREE.Mesh(geometry, material)
+    //plane.position.y = -1.45/2
+    plane.rotateX(-Math.PI / 2)
+    window.plane = plane
+    scene.add(plane)
+
+    const cargeometry = new THREE.BoxGeometry(2.09, 1.45, 4.7)
+    const carmaterial = new THREE.MeshPhongMaterial({color: 0x00ff00})
+    const car = new THREE.Mesh(cargeometry, carmaterial)
+    car.position.y = 1.45/2
+    scene.add(car)
+  }
+}
+
 function resolve (base, rel) {
   const parts = base.split('/')
   return parts.slice(0, parts.length - 1).concat(rel).join('/')
@@ -726,4 +823,11 @@ if (file.endsWith('.xyz')) {
     })
   })
   bev3DInit()
+} else if (file.endsWith(".json")) {
+  fetch(file).then(f => f.json()).then(data => {
+    renderDet(data)
+  })
+} else {
+  console.error("Unknown file type", file)
+
 }
