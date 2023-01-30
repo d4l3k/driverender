@@ -626,11 +626,13 @@ function renderDet (data) {
   for (const color of colorList) {
     materials.push(new THREE.MeshPhongMaterial({color: color}))
   }
+  let totalObjects = 0
   for (let i = 0; i < n; i++) {
     const kls = argmax(classes[i])
     if (kls == 10) {
       continue
     }
+    totalObjects += 1
     const prob = classes[i][kls]
     console.log(kls, prob, sizes[i])
     const cube = new THREE.Mesh( geometry, materials[kls])
@@ -644,6 +646,7 @@ function renderDet (data) {
     //cube.position.z = z
     scene.add( cube );
   }
+  console.log("total objects", totalObjects)
 
   //camera.lookAt(points.position)
 
