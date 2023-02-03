@@ -270,6 +270,11 @@ function getColor (p) {
   return colorScale[i];
 }
 
+async function loadnpy(path) {
+    const n = new npyjs();
+    return await n.load(path)
+}
+
 class HideBoxGeometry extends THREE.BufferGeometry {
   constructor (showFaces, width = 1, height = 1, depth = 1, widthSegments = 1, heightSegments = 1, depthSegments = 1) {
     super()
@@ -502,22 +507,30 @@ function resetScene () {
   }
 }
 
-const height = 12
-const width = 255
-const depth = 384
+let height = 12
+let width = 255
+let depth = 384
 
-function renderBev3D (data) {
+function teslaGetV(data, x, y, z) {
+  const i = x + y * width + z * depth * width
+  if (i >= data.length || i < 0) {
+    return 0
+  }
+  return data[i] / 256
+}
+function customGetV(data, x, y, z) {
+    const i = z + (depth-x) * height + (width-y) * height * depth
+    if (i >= data.length || i < 0) {
+            return 0
+          }
+    return data[i] / 256
+  }
+
+function renderBev3D (data, getV) {
   resetScene()
 
   data = new Uint8Array(data)
   window.data = data
-  const getV = (x, y, z) => {
-    const i = x + y * width + z * depth * width
-    if (i >= data.length || i < 0) {
-      return 0
-    }
-    return data[i] / 256
-  }
   const color = new THREE.Color();
   const colors = [];
   const matrix = new THREE.Matrix4();
@@ -525,7 +538,7 @@ function renderBev3D (data) {
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < depth; y++) {
       for (let z = 0; z < height; z++) {
-        const v = getV(x, y, z)
+        const v = getV(data, x, y, z)
         if (v < prob) {
           continue
         }
@@ -734,7 +747,25 @@ if (file.endsWith('.xyz')) {
   })
 } else if (file.endsWith('.bev3d')) {
   fetch(file).then(f => f.arrayBuffer()).then(data => {
-    renderBev3D(data)
+    renderBev3D(data, teslaGetV)
+  })
+  bev3DInit()
+} else if (file.endsWith('.npy')) {
+  height = 12
+  width = 256
+  depth = 256
+
+  loadnpy(file).then(data => {
+    console.log(data)
+
+    const uint = new Uint8Array(data.data.length)
+    for (let i = 0; i<data.data.length; i++) {
+      uint[i] = data.data[i]*256
+    }
+
+    renderBev3D(uint, customGetV)
+  }).catch((e) => {
+    console.error(e)
   })
   bev3DInit()
 } else if (file.endsWith('.txt')) {
